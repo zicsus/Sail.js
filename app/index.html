@@ -1,0 +1,43 @@
+<html>
+	<head>
+		<title>Sail</title>
+		<script type="text/javascript" src="../engine/Sail.js"></script>
+	</head>
+
+	<body>
+		<canvas id="canvas"></canvas>
+
+		<script type="text/javascript">
+			
+			var config = {
+				canvas : document.getElementById("canvas"),
+				width: 800,
+				height : 600
+			};
+
+			var sail = Sail();
+			sail.create(config);
+
+			var scene1 = sail.newScene();
+			var scene2 = sail.newScene();
+
+			let rect = sail.newRect(100, 100, 50, 50);
+			scene1.add(rect);
+
+			let rect2 = sail.newRect(0,0, 100, 100);
+			scene2.add(rect2);
+
+			sail.addScene(scene1);
+			sail.addScene(scene2);
+
+			sail.loop(function()
+			{
+				rect.position.x += 1;
+				sail.changeScene(1);
+			});
+
+
+		</script>
+	</body>
+
+</html>
