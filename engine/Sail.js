@@ -31,6 +31,10 @@ var Sail = function()
 				console.log("Contructor should be a function");
 			}
         }
+        else if(defination.extends)
+        {
+            initialize = defination.extends;
+        }
         
         if(defination.extends)
         {
@@ -42,15 +46,156 @@ var Sail = function()
 
 		return initialize;
     }
-
     self.Class = Class;
+
+    // Vector
+    var Vector = new Class(
+    {
+        construct : function(x, y)
+		{
+			this.x = x;
+			this.y = y;
+		},
+		equals : function(vec)
+		{
+			return ((this.x == vec.x) && (this.y == vec.y));
+		},
+		add : function(vec)
+		{
+			this.x += vec.x;
+			this.y += vec.y;
+			return this
+		},
+		subtract : function(vec)
+		{
+			this.x -= vec.x;
+			this.y -= vec.y;
+			return this;
+		},
+		multiply : function(vec)
+		{
+			this.x *= vec.x;
+			this.y *= vec.y;
+			return this;
+		},
+		scale : function(value)
+		{
+			this.x *= value;
+			this.y *= value;
+			return this;
+		},
+		distance : function(vec)
+		{
+			let dx = this.x - vec.x;
+			let dy = this.y - vec.y;
+			return Math.sqrt(dx * dx + dy * dy);
+		},
+		length : function()
+		{
+			return Math.sqrt(this.x * this.x + this.y * this.y);
+		},
+		normalize : function()
+		{
+			let length = this.length();
+			this.x /= length;
+			this.y /= length;
+			this.z /= length;
+		}
+    });
+
+    // Input Layer
+    var input = {
+        isPressed : {},
+        keyUp : function(key)
+        {
+            this.isPressed[key] = false;
+        },
+        keyDown : function(key)
+        {
+            this.isPressed[key] = true;
+        },
+        detect: function()
+        {
+            document.addEventListener("keyup", function(e)
+            {
+                input.keyUp(e.keyCode);
+            });
+    
+            document.addEventListener("keydown", function(e)
+            {
+                input.keyDown(e.keyCode);
+            });
+        }
+    }
+
+    self.Input = {
+        A : 65,
+        isDown : function(key)
+        {
+            return input.isPressed[key];
+        }
+    };
+
+    // Asset loading
+    var AssetManager = {
+        assets : {},
+        toLoad : {},
+        load : function(callback)
+        {
+            this.toLoadLength = Object.keys(this.toLoad).length;
+            this.completed = 0;
+            this.callback = callback;
+            for(name in this.toLoad)
+            {   
+                this.loadImage(name);
+            }
+        },
+        loadImage : function(name)
+        {
+            var image = new Image();
+            image.onload = function()
+            {
+                AssetManager.completed ++;
+                AssetManager.assets[name] = image;
+                delete AssetManager.toLoad[name];
+
+                if(AssetManager.completed >= AssetManager.toLoadLength)
+                {
+                    AssetManager.callback();
+                }
+            }
+            image.src = this.toLoad[name];
+        }
+    }   
+
+    self.load = function(name, src)
+    {
+        AssetManager.toLoad[name] = src;
+    }
+
+    // Game object
+    var Sprite = new Class(
+    {
+        construct : function(x, y, w, h, src)
+        {
+            this.position = new Vector(x, y);
+            this.scale = new Vector(w, h);
+            this.src = src;
+        },
+        render : function()
+        {
+            GameManager.context.drawImage(this.src,
+                this.position.x, this.position.y,
+                this.scale.x, this.scale.y);
+        }
+    });
 
     // Scene system
     self.Scene = new Class(
     {
         construct : function()
         {
-            this.gameObjects = {};
+            this.gameObjects = [];
         },
         preload : function()
         {},
@@ -58,15 +203,26 @@ var Sail = function()
         {},
         update : function()
         {},
-        keyPress: function(key)
-        {},
-        keyDown : function(key)
-        {},
-        keyUp : function(key)
-        {},
-        add : function(name, object)
+        render : function()
         {
-            this.gameObjects[name] = object;
+            for(i in this.gameObjects)
+            {
+                this.gameObjects[i].render();
+            }
+        },
+        addSprite : function(x, y, w, h, src)
+        {
+            var image = AssetManager.assets[src];
+            if(image)
+            {
+                var sprite = new Sprite(x, y, w, h, image);
+                this.gameObjects.push(sprite);
+                return sprite;
+            }
+            else
+            {
+                throw new Error("Unable to load asset - " + src);
+            }
         },
     });
 
@@ -125,36 +281,26 @@ var Sail = function()
         scene.preload();
         // TODO - load assets.
 
-        scene.start();
-
-        keyboardInput(scene);
-        gameLoop(scene);
+        AssetManager.load(function()
+        {
+            input.detect();
+            scene.start();
+            gameLoop(scene);
+        });
     } 
     
-    function keyboardInput(scene)
-    {
-        document.addEventListener("keyup", function(e)
-        {
-            scene.keyUp(e.keyCode);
-        });
-
-        document.addEventListener("keydown", function(e)
-        {
-            scene.keyDown(e.keyCode);
-        });
-
-        document.addEventListener("keypress", function(e)
-        {
-            scene.keyPress(e.keyCode);
-        })
-    }
-
     function gameLoop(scene)
     {
         requestAnimationFrame(function()
         {
+            // Clear screen
+            GameManager.context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update scene
             scene.update();
-            //gameLoop(scene);
+            scene.render();
+            
+            gameLoop(scene);
         });
     }
 

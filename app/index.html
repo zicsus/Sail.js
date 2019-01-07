@@ -16,28 +16,17 @@
 				extends : sail.Scene,
 				preload : function()
 				{
-					console.log("preload initiated")
+					sail.load("bird", "assets/bird.png");
+					sail.load("bird2", "assets/bird.png");
 				},
 				start : function ()
 				{
-					console.log("start initiated")
+					this.player = this.addSprite(100, 100, 50, 50, "bird");
 				},
 				update : function()
 				{
 					
-				},
-				keyPress : function(key)
-				{
-					console.log("keypress")
-				},
-				keyUp : function(key)
-				{
-					console.log("keyup")
-				},
-				keyDown : function(key)
-				{
-					console.log("keydown")
-				}
+				}	
 			});
 
 			var config = {
