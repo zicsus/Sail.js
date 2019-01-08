@@ -16,12 +16,14 @@
 				extends : sail.Scene,
 				preload : function()
 				{
-					sail.load("bird", "assets/bird.png");
-					sail.load("bird2", "assets/bird.png");
+					sail.loadImage("tilemap", "assets/tilemap.png");
+					sail.loadTileMap("tilemap", "assets/tilemap.png", 12, 12)
+					sail.loadFromTilemap("tilemap", "floor", 1);
 				},
 				start : function ()
 				{
-					this.player = this.addSprite(100, 100, 50, 50, "bird");
+					this.player = this.addSprite(100, 100, 50, 50, "floor");
+					this.player.smoothing = false;
 				},
 				update : function()
 				{

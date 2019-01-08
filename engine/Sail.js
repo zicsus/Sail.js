@@ -137,6 +137,54 @@ var Sail = function()
     };
 
     // Asset loading
+    var AssetType = {
+        IMG : 0,
+        TILE : 1
+    }
+
+    var TileMap = new Class(
+    {   
+        construct : function(name, image, width, height)
+        {
+            this.name = name;
+            this.image = image;
+            this.cellWidth = width;
+            this.cellHeight = height; 
+            this.rows = this.image.width / this.cellWidth;
+            this.cols = this.image.height / this.cellHeight;
+            this.tiles = {};
+        },
+        getTile : function(cellNo)
+        {
+            var x = (cellNo % this.cols) * this.cellWidth;
+            var y = (cellNo % this.rows) * this.cellHeight;
+            return {
+                x:x, y:y, image: this.image
+            };
+        }
+    });
+
+    var Asset = new Class(
+    {
+        construct : function(name, type) 
+        {
+            this.name = name;
+            this.type = type;
+            this.path = "";
+        },
+        setSrc :  function(src, x, y, width, height)
+        {
+            if(this.type == AssetType.IMG)
+            {
+                this.src = src;
+            }
+            else if(this.type == AsssetType.TILE)
+            {
+                this.src = {src : src, x : x, y : y, width:width, height:height};
+            }
+        }
+    });
+
     var AssetManager = {
         assets : {},
         toLoad : {},
@@ -156,6 +204,8 @@ var Sail = function()
             image.onload = function()
             {
                 AssetManager.completed ++;
+                let asset = new Asset(name, AssetType.IMG);
+                asset.src = image;
                 AssetManager.assets[name] = image;
                 delete AssetManager.toLoad[name];
 
@@ -165,28 +215,61 @@ var Sail = function()
                 }
             }
             image.src = this.toLoad[name];
+        },
+        loadFromTilemap : function(name, src)
+        {
+
         }
     }   
 
-    self.load = function(name, src)
+    self.loadImage = function(name, src)
     {
-        AssetManager.toLoad[name] = src;
+        let asset = new Asset(name, AssetType.IMG);
+        asset.path = src;
+        AssetManager.toLoad[name] = asset;
     }
+
+    self.loadFromTileMap = function(name, src, x, y, width, height)
+    {
+        let asset = new Asset(name, AssetType.TILE);
+        asset.path = src;
+
+    }
+
+    // Animations
+
 
     // Game object
     var Sprite = new Class(
     {
-        construct : function(x, y, w, h, src)
+        construct : function(x, y, w, h, asset)
         {
             this.position = new Vector(x, y);
             this.scale = new Vector(w, h);
-            this.src = src;
+            this.asset = asset;
         },
+        smoothing : true,
         render : function()
         {
-            GameManager.context.drawImage(this.src,
-                this.position.x, this.position.y,
-                this.scale.x, this.scale.y);
+            GameManager.context.imageSmoothingEnabled = tihs.smoothing;
+            if(this.asset.type == AssetType.IMG)
+            {
+                GameManager.context.drawImage(this.asset.getSrc,
+                    this.position.x, this.position.y,
+                    this.scale.x, this.scale.y);
+            }
+            else if(this.asset.type == AssetType.TILE)
+            {
+                GameManager.context.drawImage(this.asset.getSrc.src, 
+                    this.asset.getSrc.x, this.asset.getSrc.y,
+                    this.asset.getSrc.width, this.asset.getSrc.height,
+                    this.position.x, this.position.y,
+                    this.scale.x, this.scale.y);
+            }
+            else
+            {
+                throw new Error("Unable to determine assset type");
+            }
         }
     });
 
@@ -224,6 +307,10 @@ var Sail = function()
                 throw new Error("Unable to load asset - " + src);
             }
         },
+        createAnim : function(src)
+        {
+
+        }
     });
 
     var GameManager = {
