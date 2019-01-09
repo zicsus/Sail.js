@@ -8,7 +8,6 @@
 		<canvas id="canvas"></canvas>
 
 		<script type="text/javascript">
-			
 			var sail = Sail();
 
 			var Main = new sail.Class(
@@ -16,9 +15,8 @@
 				extends : sail.Scene,
 				preload : function()
 				{
-					sail.loadImage("tilemap", "assets/tilemap.png");
-					sail.loadTileMap("tilemap", "assets/tilemap.png", 12, 12)
-					sail.loadFromTilemap("tilemap", "floor", 1);
+					sail.loadTileMap("tilemap", "assets/tilemap.png", 12, 12);
+					sail.loadFromTileMap("floor", "tilemap", 0);
 				},
 				start : function ()
 				{
