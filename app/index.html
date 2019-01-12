@@ -4,6 +4,13 @@
 		<script type="text/javascript" src="../engine/Sail.js"></script>
 	</head>
 
+	<style>
+		*{
+			margin: 0px;
+			padding: 0px;
+		}
+	</style>
+
 	<body>
 		<canvas id="canvas"></canvas>
 
@@ -15,24 +22,34 @@
 				extends : sail.Scene,
 				preload : function()
 				{
-					sail.loadTileMap("tilemap", "assets/tilemap.png", 12, 12);
-					sail.loadFromTileMap("floor", "tilemap", 0);
+					sail.loadTileMap("tilemap", "assets/mario.png", 18, 30);
+					sail.loadFromTileMap("mario", "tilemap", 0);
 				},
 				start : function ()
 				{
-					this.player = this.addSprite(100, 100, 50, 50, "floor");
+					this.player = this.addSprite(100, 100, 50, 50, "mario");
 					this.player.smoothing = false;
+
+					this.anim = this.createAnim(
+						"walking",
+						"tilemap",
+						new sail.Vector(15, 13),
+						50
+					);
 				},
 				update : function()
 				{
-					
+					if(sail.Input.isDown(sail.Input.A))
+					{
+						this.player.animate("walking");
+					}
 				}	
 			});
 
 			var config = {
 				canvas : document.getElementById("canvas"),
-				width: 800,
-				height : 600,
+				width: screen.width,
+				height : screen.height,
 				scenes : {
 					"main" : new Main()
 				}

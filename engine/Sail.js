@@ -102,6 +102,7 @@ var Sail = function()
 			this.z /= length;
 		}
     });
+    self.Vector = Vector;
 
     // Input Layer
     var input = {
@@ -164,7 +165,8 @@ var Sail = function()
             this.cellHeight = cellHeight; 
             this.rows = Math.floor(this.image.width / this.cellWidth);
             this.cols = Math.floor(this.image.height / this.cellHeight);
-            this.tiles = {};
+            this.tiles = [];
+            this.tileNames = {};
 
             this.createTiles();
         },
@@ -200,7 +202,7 @@ var Sail = function()
 
     var Raw = new Class(
     {
-        construct : function(type, src, name)
+        construct : function(name, type, src)
         {
             this.type = type;
             this.src = src; 
@@ -262,13 +264,11 @@ var Sail = function()
                 {
                     AssetManager.completed ++;
                     let tile = tileMap.src.tiles[raw.cellNo];
-                    
-                    tileMap.src.tiles[raw.name] = tile;
+                    tileMap.src.tileNames[name] = raw.cellNo;
 
                     let asset = new Asset(raw.name, AssetType.TILE, tile);
 
                     AssetManager.assets[raw.name] = asset;
-                    delete tileMap.src.tiles[raw.cellNo];
                     delete this.toLoad[index];
 
                     AssetManager.recurse(index + 1);
@@ -306,13 +306,13 @@ var Sail = function()
 
     self.loadImage = function(name, src)
     {
-        let raw = new Raw(AssetType.IMG, src, name);
+        let raw = new Raw(name, AssetType.IMG, src);
         AssetManager.toLoad.push(raw);
     }
 
     self.loadTileMap = function(name, src, cellWidth, cellHeight)
     {
-        let raw = new Raw(AssetType.TILEMAP, src, name);
+        let raw = new Raw(name, AssetType.TILEMAP, src);
         raw.cellWidth = cellWidth;
         raw.cellHeight = cellHeight;
         AssetManager.toLoad.push(raw);
@@ -320,22 +320,101 @@ var Sail = function()
 
     self.loadFromTileMap = function(name, src, cellNo)
     {
-        let raw = new Raw(AssetType.TILE, src, name);
+        let raw = new Raw(name, AssetType.TILE, src);
         raw.cellNo = cellNo;
         AssetManager.toLoad.push(raw);
     }
 
     // Animations
+    var Animation = new Class(
+    {
+        construct : function(name, tileMap, range, time)
+        {
+            this.name = name;
+            this.tileMap = tileMap;
+            this.range = range;
+            this.time = time;
+            this.create();
+        },
+        create : function()
+        {
+            this.tiles = [];
 
+            let max =  Math.max(this.range.x, this.range.y);
+            if(this.tileMap.tiles.length > max)
+            {
+                if(this.range.x == max)
+                {
+                    for(var i = max; i >= this.range.y; i--)
+                        this.tiles.push(this.tileMap.tiles[i]);
+                }
+                else
+                {
+                    for(var i = this.range.x; i <= max; i++)
+                        this.tiles.push(this.tileMap.tiles[i]);
+                }
+            }
+            else
+            {
+                throw new Error("Animation out of range");
+            }
+        }
+    });
+
+    function startAnimation(parent)
+    {   
+        let index = 0;
+        let reverse = false;
+        
+        wait();
+
+        function animate()
+        {
+            if(reverse)
+            {
+                index--;
+                console.log(index);
+                parent.asset = new Asset(parent.anim.name, AssetType.TILE, parent.anim.tiles[index]);
+            }
+            else
+            {
+                console.log(index);
+                parent.asset = new Asset(parent.anim.name, AssetType.TILE, parent.anim.tiles[index]);
+                if(index == parent.anim.tiles.length - 1)
+                    reverse = true;
+                else
+                    index++;
+            }
+
+            wait();
+        }
+
+        function wait()
+        {
+            if(reverse && index == 0)
+            {
+                parent.isAnimating = false;
+                return;
+            }
+
+            setTimeout(function()
+            {
+                console.log("yahh");
+                animate();
+            }, parent.anim.time);
+        }
+    }
 
     // Game object
     var Sprite = new Class(
     {
-        construct : function(x, y, w, h, asset)
+        construct : function(x, y, w, h, asset, parent)
         {
+            this.parent = parent;
             this.position = new Vector(x, y);
             this.scale = new Vector(w, h);
             this.asset = asset;
+            this.isAnimating = false;
         },
         smoothing : true,
         render : function()
@@ -351,7 +430,7 @@ var Sail = function()
             {
                 GameManager.context.drawImage(this.asset.src.parent.image, 
                     this.asset.src.start.x, this.asset.src.start.y,
-                    this.asset.src.end.x, this.asset.src.end.y,
+                    this.asset.src.parent.cellWidth, this.asset.src.parent.cellHeight,
                     this.position.x, this.position.y,
                     this.scale.x, this.scale.y);
             }
@@ -359,8 +438,46 @@ var Sail = function()
             {
                 throw new Error("Unable to determine assset type");
             }
+        },
+        animate : function(animation)
+        {
+            if(this.isAnimating)
+            {
+                return
+            }
+
+            this.isAnimating = true;
+            this.anim = this.parent.anims[animation];
+            
+            if(this.anim)
+            {
+                startAnimation(this)
+            } 
+            else
+            {
+                throw new Error("Animation not found - ", animation);
+            }
+        },
+        changeTile : function()
+        {
+            this.asset = 
+            
+            this.index++;
+            if(this.index > this.anim.tiles.length - 1)
+            {
+                return
+            }  
+
+            this.wait();
+        },
+        wait : function()
+        {
+            
+            setTimeout(this.changeTile, this.anim.time);
         }
     });
+
+    
 
     // Scene system
     self.Scene = new Class(
@@ -368,6 +485,7 @@ var Sail = function()
         construct : function()
         {
             this.gameObjects = [];
+            this.anims = {};
         },
         preload : function()
         {},
@@ -387,7 +505,7 @@ var Sail = function()
             var asset = AssetManager.assets[src];
             if(asset)
             {
-                var sprite = new Sprite(x, y, w, h, asset);
+                var sprite = new Sprite(x, y, w, h, asset, this);
                 this.gameObjects.push(sprite);
                 return sprite;
             }
@@ -396,9 +514,18 @@ var Sail = function()
                 throw new Error("Unable to load asset - " + src);
             }
         },
-        createAnim : function(src)
+        createAnim : function(name, tileMap, range, time)
         {
-
+            var asset = AssetManager.assets[tileMap];
+            if(tileMap)
+            {
+                let anim = new Animation(name, asset.src, range, time);
+                this.anims[name] = anim;
+            }
+            else
+            {
+                throw new Error("Unable to find tile map - ", tileMap);
+            }
         }
     });
 

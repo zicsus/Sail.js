@@ -171,7 +171,6 @@ var Sail = function()
 		return new Rect(x, y, w, h);
 	}
 
-
 	// Collision detection
 
 	function collisionDetection(gameObjects)
@@ -225,6 +224,8 @@ var Sail = function()
 			context.closePath();
 		}
 	});
+
+
 
 	// Manage scenes
 	let Scene = new Class(
